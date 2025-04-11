@@ -1,0 +1,57 @@
+pipeline {
+    agent { label 'docker' } // Replace with your actual agent label
+
+    environment {
+        APP_NAME = 'project'
+        DOCKER_IMAGE = "${APP_NAME}:latest"
+        CONTAINER_NAME = 'ajay'
+        PORT = '8080'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build with Maven') {
+            steps {
+                echo "Building the application..."
+                sh 'mvn clean package -DskipTests'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                echo "Building Docker image..."
+                sh 'docker build -t $DOCKER_IMAGE .'
+            }
+        }
+
+        stage('Stop Existing Container') {
+            steps {
+                echo "Stopping old container if it exists..."
+                sh """
+                   docker ps -q --filter "name=$CONTAINER_NAME" | grep -q . && docker stop $CONTAINER_NAME && docker rm $CONTAINER_NAME || echo "No container to stop"
+                """
+            }
+        }
+
+        stage('Run Docker Container') {
+            steps {
+                echo "Running new container..."
+                sh "docker run -d --name $CONTAINER_NAME -p $PORT:$PORT $DOCKER_IMAGE"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🎉 Deployment successful!"
+        }
+        failure {
+            echo "❌ Deployment failed!"
+        }
+    }
+}
