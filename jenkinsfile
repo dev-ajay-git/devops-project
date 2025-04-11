@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'docker-agent' } // Make sure your agent has Docker + Java
+    agent { label 'docker' } // Make sure your agent has Docker + Java
 
     tools {
         maven 'maven' // This must match the Maven version in Jenkins → Global Tool Configuration
