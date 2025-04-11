@@ -1,5 +1,9 @@
 pipeline {
-    agent { label 'docker' } // Replace with your actual agent label
+    agent { label 'docker-agent' } // Make sure your agent has Docker + Java
+
+    tools {
+        maven 'maven' // This must match the Maven version in Jenkins → Global Tool Configuration
+    }
 
     environment {
         APP_NAME = 'project'
@@ -11,36 +15,39 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+                echo "📥 Checking out code from SCM..."
                 checkout scm
             }
         }
 
         stage('Build with Maven') {
             steps {
-                echo "Building the application..."
+                echo "🔨 Building the application with Maven..."
                 sh 'mvn clean package -DskipTests'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                echo "Building Docker image..."
+                echo "🐳 Building Docker image..."
                 sh 'docker build -t $DOCKER_IMAGE .'
             }
         }
 
         stage('Stop Existing Container') {
             steps {
-                echo "Stopping old container if it exists..."
+                echo "🛑 Stopping old container if exists..."
                 sh """
-                   docker ps -q --filter "name=$CONTAINER_NAME" | grep -q . && docker stop $CONTAINER_NAME && docker rm $CONTAINER_NAME || echo "No container to stop"
+                    docker ps -q --filter "name=$CONTAINER_NAME" | grep -q . && \
+                    docker stop $CONTAINER_NAME && docker rm $CONTAINER_NAME || \
+                    echo "No container named $CONTAINER_NAME found."
                 """
             }
         }
 
         stage('Run Docker Container') {
             steps {
-                echo "Running new container..."
+                echo "🚀 Running Docker container..."
                 sh "docker run -d --name $CONTAINER_NAME -p $PORT:$PORT $DOCKER_IMAGE"
             }
         }
@@ -48,10 +55,10 @@ pipeline {
 
     post {
         success {
-            echo "🎉 Deployment successful!"
+            echo "✅ Deployment successful! App is running in Docker container '$CONTAINER_NAME' on port $PORT 🎉"
         }
         failure {
-            echo "❌ Deployment failed!"
+            echo "❌ Deployment failed! Check above logs. 😓"
         }
     }
 }
